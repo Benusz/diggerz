@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dig Retro</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #111;
+        color: #e8e8e8;
+        font-family: "Courier New", monospace;
+      }
+      body.game-active #titleBar,
+      body.game-active #footHud {
+        display: flex;
+      }
+      #titleBar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 10px;
+        font-size: 14px;
+        letter-spacing: 1px;
+        background: #1a1a1a;
+        border-bottom: 2px solid #333;
+      }
+      #wrap {
+        position: relative;
+        flex: 1;
+        width: 100%;
+        min-height: 0;
+        border: none;
+        box-shadow: none;
+      }
+      body.game-active #wrap {
+        border: 4px solid #2f2f2f;
+        box-shadow: 0 0 0 4px #000, 0 0 18px rgba(0,0,0,0.8);
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        image-rendering: pixelated;
+        background: #78a8d8;
+      }
+      #footHud {
+        display: none;
+        padding: 6px 10px;
+        font-size: 11px;
+        color: #cfcfcf;
+        background: #151515;
+        border-top: 2px solid #333;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      #modeOverlay {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: #fff;
+        z-index: 5;
+      }
+      #modeCard {
+        width: min(640px, calc(100% - 24px));
+        max-height: calc(100% - 24px);
+        overflow: auto;
+        border: 3px solid #333;
+        background: #f5f5f5;
+        color: #111;
+        padding: 16px;
+      }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+      .btn {
+        border: 2px solid #444;
+        background: #e0e0e0;
+        color: #111;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-weight: 700;
+        font-family: inherit;
+      }
+      .btn:hover { background: #d0d0d0; }
+      #usernameInput {
+        width: 100%;
+        margin-top: 8px;
+        padding: 8px;
+        border: 2px solid #666;
+        background: #fff;
+        color: #111;
+        font-family: inherit;
+      }
+      #chat {
+        position: absolute;
+        left: 10px;
+        bottom: 64px;
+        width: 360px;
+        max-width: calc(100% - 20px);
+        background: rgba(0,0,0,0.68);
+        border: 2px solid #4a4a4a;
+        z-index: 4;
+      }
+      #chat.hidden { display: none; }
+      #chatLog {
+        height: 110px;
+        overflow: auto;
+        padding: 8px;
+        white-space: pre-wrap;
+        font-size: 12px;
+      }
+      #chatBar { display: flex; gap: 6px; padding: 6px; border-top: 1px solid #404040; }
+      #chatInput {
+        flex: 1;
+        background: #101010;
+        color: #f6f6f6;
+        border: 2px solid #4e4e4e;
+        padding: 6px;
+        font-family: inherit;
+      }
+      #chatSend {
+        border: 2px solid #666;
+        background: #222;
+        color: #fff;
+        padding: 6px 8px;
+        font-family: inherit;
+      }
+      #respawnBtn {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        border: 2px solid #999;
+        background: #2a2a2a;
+        color: #fff;
+        padding: 10px 14px;
+        font-family: inherit;
+        display: none;
+        cursor: pointer;
+        z-index: 6;
+      }
+      #changelogBox {
+        margin-top: 12px;
+        font-size: 11px;
+        border: 2px solid #aaa;
+        background: #fff;
+        padding: 8px;
+        max-height: 220px;
+        overflow-y: auto;
+      }
+      #changelogBox h3 { margin: 0 0 6px; font-size: 13px; }
+      #changelogBox ul { margin: 0; padding-left: 18px; }
+      #changelogBox li { margin-bottom: 4px; }
+    </style>
+  </head>
+  <body>
+    <div id="titleBar"><span>DIG RETRO</span><span id="modeHint" style="opacity:.7;font-size:11px">ESC to leave</span></div>
+    <div id="wrap">
+      <canvas id="game" width="960" height="540"></canvas>
+      <div id="modeOverlay">
+        <div id="modeCard">
+          <div><strong>Choose mode + username</strong></div>
+          <input id="usernameInput" maxlength="20" placeholder="username" value="miner" />
+          <div class="row">
+            <button class="btn" type="button" id="btnBattle">BATTLE</button>
+            <button class="btn" type="button" id="btnDigTrade">DIG AND TRADE</button>
+            <button class="btn" type="button" id="btnShop">SHOP</button>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#333">
+            Commands: <code>?digTime=1250</code> <code>?moveSpeed=320</code> <code>?teleport=(120,80)</code>
+            <code>?resetPos</code> <code>?gravity=2400</code> <code>?normal</code>
+          </div>
+          <div id="changelogBox">
+            <h3>Changelog</h3>
+            <ul>
+              <li>Main menu hides in-game HUD; white menu background.</li>
+              <li>Hotbar only in-game; removed corner backpack panel (use Shift inventory).</li>
+              <li>Saw &amp; lava hazards: damage, 2-tile knockback, white damage flash.</li>
+              <li>Mortar: destroys one tile, infinite ammo, label without count.</li>
+              <li>Cannot place blocks overlapping the player.</li>
+              <li>World cannons aim line shots at you (1 dmg / 2s); player cannons do not.</li>
+              <li>Random sky spawn; fall to terrain; bottom bedrock margin for UI.</li>
+              <li>Water buoyancy with gentle bob; wall slide.</li>
+              <li>Mouse-distance shot power (capped); straight weapons stay straight.</li>
+              <li>Hotbar overflow goes to backpack; full-screen canvas.</li>
+              <li>Laser trajectory preview; draggable hotbar &amp; inventory.</li>
+              <li>Chat limit 35 chars; super-rare dig banner.</li>
+              <li>Death coin persists until picked up.</li>
+              <li>Throwable saw blade with arc + trajectory; weapon fire delay.</li>
+              <li>Sloped triangle tiles; circular spinning saw hazard art.</li>
+              <li>Player chat bubble above head; cannon aim triangle.</li>
+              <li>Grenade launcher (2s fuse); mortar arc fixes; camera follows falling shots.</li>
+              <li>SHOP zone: no weapons/dig; Dig+Trade immortal &amp; no shooting; Battle full rules.</li>
+              <li>Ladders (rare dig), username ^color codes, hitbox substeps.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div id="chat">
+        <div id="chatLog"></div>
+        <div id="chatBar">
+          <input id="chatInput" maxlength="35" placeholder="Press Enter to chat (35 max)" />
+          <button type="button" id="chatSend">Send</button>
+        </div>
+      </div>
+      <button type="button" id="respawnBtn">Respawn</button>
+    </div>
+    <div id="footHud">
+      WASD · W jump · left: dig / place (build equipped) / shoot · Shift inventory · ESC menu · H chat
+    </div>
+    <script src="{{ url_for('static', filename='game.js') }}"></script>
+  </body>
+</html>
